@@ -5,7 +5,7 @@ SOURCE = main.cpp http_server.cpp http_session.cpp
 
 all: webserver
 
-webserver: main.cpp
+webserver: main.cpp http_server.cpp http_session.cpp
 	$(CC) $(CFLAGS) -o webserver $(SOURCE)
 
 clean:

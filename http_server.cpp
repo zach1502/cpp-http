@@ -1,8 +1,8 @@
 #include "http_server.hpp"
-
+#include "http_session.hpp"
 #include <iostream>
 
-#include "http_session.hpp"
+#define isDevMode 1
 
 http_server::http_server(net::io_context& ioc, tcp::endpoint endpoint)
     : ioc_(ioc), acceptor_(net::make_strand(ioc)) {

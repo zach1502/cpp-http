@@ -1,27 +1,31 @@
 #include "http_session.hpp"
-#include "globals.hpp"
+
+#include <filesystem>
 #include <fstream>
 #include <iostream>
+
+#include "globals.hpp"
 
 std::map<std::string,
          std::function<void(http_session&,
                             const http::request<http::dynamic_body>&)>>
     http_session::routeHandlers;
 
+std::ifstream http_session::file_stream;
+
 http_session::http_session(tcp::socket socket) : socket_(std::move(socket)) {}
 
 void http_session::start() { do_read(); }
 
-void http_session::addRoute(const std::string& route,
-                                   RequestHandler handler) {
+void http_session::addRoute(const std::string& route, RequestHandler handler) {
   routeHandlers[route] = handler;
 }
 
-void http_session::send_response(const std::string& message) {
+void http_session::send_response(const std::string& message, const std::string &content_type) {
   auto res = std::make_shared<http::response<http::string_body>>(
       http::status::ok, req_.version());
   res->set(http::field::server, BOOST_BEAST_VERSION_STRING);
-  res->set(http::field::content_type, "text/plain");
+  res->set(http::field::content_type, content_type);
   res->body() = message;
   res->prepare_payload();
 
@@ -92,4 +96,45 @@ void http_session::on_write(beast::error_code ec, bool close) {
 
   // Read another request
   do_read();
+}
+
+void http_session::stream_file(const std::string& file_path, const std::string &content_type) {
+  auto self = shared_from_this();
+  auto buffer = std::make_shared<std::vector<char>>(4096);
+  auto response = std::make_shared<http::response<http::buffer_body>>();
+
+  file_stream.open(file_path, std::ios::binary);
+  if (!file_stream.is_open()) {
+    send_bad_request("File not found");
+    return;
+  }
+
+  do_file_read(self, buffer, response, content_type);
+}
+
+void http_session::do_file_read(
+    std::shared_ptr<http_session> self,
+    std::shared_ptr<std::vector<char>> buffer,
+    std::shared_ptr<http::response<http::buffer_body>> response,
+    const std::string &content_type) {
+  self->file_stream.read(buffer->data(), buffer->size());
+  auto bytes_read = self->file_stream.gcount();
+
+  response->version(self->req_.version());
+  response->result(http::status::ok);
+  response->set(http::field::server, BOOST_BEAST_VERSION_STRING);
+  response->set(http::field::content_type, content_type);
+  response->body().data = buffer->data();
+  response->body().size = bytes_read;
+  response->body().more = !self->file_stream.eof();
+
+  http::async_write(
+      self->socket_, *response,
+      [self, buffer, response, content_type](beast::error_code ec, std::size_t) {
+        if (!ec && response->body().more) {
+          do_file_read(self, buffer, response, content_type);
+        } else {
+          self->on_write(ec, response->need_eof());
+        }
+      });
 }

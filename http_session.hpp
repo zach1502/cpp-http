@@ -21,8 +21,9 @@ public:
     void start();
 
     static void addRoute(const std::string& route, std::function<void(http_session&, const http::request<http::dynamic_body>&)> handler);
-    void send_response(const std::string& message);
+    void send_response(const std::string& message, const std::string &content_type);
     void send_bad_request(const std::string& message);
+    void stream_file(const std::string& file_path, const std::string &content_type);
 
 private:
     tcp::socket socket_;
@@ -33,7 +34,13 @@ private:
     void on_read(beast::error_code ec, std::size_t bytes_transferred);
     void on_write(beast::error_code ec, bool close);
 
+    static void do_file_read(std::shared_ptr<http_session> self,
+        std::shared_ptr<std::vector<char>> buffer,
+        std::shared_ptr<http::response<http::buffer_body>> response,
+        const std::string &content_type);
+
     static std::map<std::string, std::function<void(http_session&, const http::request<http::dynamic_body>&)>> routeHandlers;
+    static std::ifstream file_stream;
 };
 
 #endif  // HTTP_SESSION_HPP

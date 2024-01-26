@@ -9,24 +9,15 @@
 #define SERVER_PORT 8080
 
 void handle_root(http_session& session, const http::request<http::dynamic_body>& req) {
-    session.send_response("Welcome to the root!");
+    session.send_response("Welcome to the root!", "text/html");
 }
 
 void handle_about(http_session& session, const http::request<http::dynamic_body>& req) {
-    session.send_response("About page");
+    session.send_response("About page", "text/html");
 }
 
 void handle_favorite_icon(http_session& session, const http::request<http::dynamic_body>& req) {
-  std::fstream file;
-  file.open("favicon.ico", std::ios::in | std::ios::binary);
-
-  if (file.is_open()) {
-    std::string content((std::istreambuf_iterator<char>(file)),
-                        (std::istreambuf_iterator<char>()));
-    session.send_response(content);
-  } else {
-    session.send_bad_request("File not found");
-  }
+    session.stream_file("favicon.ico", "image/x-icon");
 }
 
 std::unique_ptr<http_server> server;

@@ -53,6 +53,8 @@
         "thread": "cpp",
         "csignal": "cpp",
         "map": "cpp",
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "codecvt": "cpp",
+        "iomanip": "cpp"
     }
 }
