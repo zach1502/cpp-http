@@ -117,10 +117,6 @@ void http_session::stream_file(const std::string& file_path, const std::string &
     return;
   }
 
-  std::cout << "\x1b[34m" << response->result_int() << " " << response->reason()
-            << "\x1b[0m"
-            << " " << response->body().size << " outgoing bytes" << std::endl;
-
   do_file_read(self, buffer, response, content_type);
 }
 
@@ -139,6 +135,10 @@ void http_session::do_file_read(
   response->body().data = buffer->data();
   response->body().size = bytes_read;
   response->body().more = !self->file_stream.eof();
+
+  std::cout << "\x1b[34m" << response->result_int() << " " << response->reason()
+          << "\x1b[0m"
+          << " " << response->body().size << " outgoing bytes" << std::endl;
 
   http::async_write(
       self->socket_, *response,
