@@ -199,6 +199,9 @@ void handle_about(http_session& session,
 
 void handle_favorite_icon(http_session& session,
                           const http::request<http::dynamic_body>& req) {
+  // open f stream
+  // read file
+  // send response
   std::fstream file;
   file.open("favicon.ico", std::ios::in | std::ios::binary);
 
