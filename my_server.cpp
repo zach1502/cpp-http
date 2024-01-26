@@ -88,7 +88,10 @@ class http_session : public std::enable_shared_from_this<http_session> {
   }
 
   void on_read(beast::error_code ec, std::size_t bytes_transferred) {
-    if (ec) return;  // Handle the error
+    if (ec) {
+      std::cerr << "\x1b[31m" << "Error: " << ec.message() << "\x1b[0m" << std::endl;
+      return;
+    }
 
     // Log the request type ( with color), path, and bytes transfered
     std::cout << "\x1b[32m" << req_.method_string() << " " << req_.target()

@@ -67,7 +67,10 @@ void http_session::do_read() {
 
 void http_session::on_read(beast::error_code ec,
                            std::size_t bytes_transferred) {
-  if (ec) return;  // Handle the error
+  if (ec) {
+    std::cerr << "\x1b[31m" << "Error: " << ec.message() << "\x1b[0m" << std::endl;
+    return;
+  }
 
   // Log the request type ( with color), path, and bytes transfered
   std::cout << "\x1b[32m" << req_.method_string() << " " << req_.target()
@@ -90,7 +93,10 @@ void http_session::handle_fallback() {
 }
 
 void http_session::on_write(beast::error_code ec, bool close) {
-  if (ec) return;  // Handle the error
+  if (ec) {
+    std::cerr << "\x1b[31m" << "Error: " << ec.message() << "\x1b[0m" << std::endl;
+    return;
+  }
 
   if (close) {
     // Close the socket
