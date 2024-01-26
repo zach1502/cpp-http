@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <map>
+#include <fstream>
 
 namespace beast = boost::beast;  // from <boost/beast.hpp>
 namespace http = beast::http;    // from <boost/beast/http.hpp>
@@ -29,10 +30,12 @@ private:
     tcp::socket socket_;
     beast::flat_buffer buffer_;
     http::request<http::dynamic_body> req_;
+    std::ifstream file_stream;
 
     void do_read();
     void on_read(beast::error_code ec, std::size_t bytes_transferred);
     void on_write(beast::error_code ec, bool close);
+    void handle_fallback();
 
     static void do_file_read(std::shared_ptr<http_session> self,
         std::shared_ptr<std::vector<char>> buffer,
@@ -40,7 +43,6 @@ private:
         const std::string &content_type);
 
     static std::map<std::string, std::function<void(http_session&, const http::request<http::dynamic_body>&)>> routeHandlers;
-    static std::ifstream file_stream;
 };
 
 #endif  // HTTP_SESSION_HPP

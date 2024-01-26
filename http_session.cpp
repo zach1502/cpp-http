@@ -11,8 +11,7 @@ std::map<std::string,
                             const http::request<http::dynamic_body>&)>>
     http_session::routeHandlers;
 
-std::ifstream http_session::file_stream;
-
+std::ifstream file_stream;
 http_session::http_session(tcp::socket socket) : socket_(std::move(socket)) {}
 
 void http_session::start() { do_read(); }
@@ -30,9 +29,11 @@ void http_session::send_response(const std::string& message, const std::string &
   res->prepare_payload();
 
   // log outgoing response
+  // cout_mutex.lock();
   std::cout << "\x1b[34m" << res->result_int() << " " << res->reason()
             << "\x1b[0m"
             << " " << res->body().size() << " outgoing bytes" << std::endl;
+  // cout_mutex.unlock();
 
   auto self = shared_from_this();
   http::async_write(socket_, *res,
@@ -78,8 +79,14 @@ void http_session::on_read(beast::error_code ec,
     it->second(*this, req_);
   } else {
     // Handle unknown route
-    send_bad_request("Route not found");
+    handle_fallback();
   }
+}
+
+void http_session::handle_fallback() {
+  // Send the response
+  std::string notFoundMessage = "<html><body><h1>404 Not Found</h1><p>The requested resource was not found on this server.</p></body></html>";
+  send_response(notFoundMessage, "text/html");
 }
 
 void http_session::on_write(beast::error_code ec, bool close) {
@@ -105,9 +112,14 @@ void http_session::stream_file(const std::string& file_path, const std::string &
 
   file_stream.open(file_path, std::ios::binary);
   if (!file_stream.is_open()) {
+    std::cout << "File not found: " << file_path << std::endl;
     send_bad_request("File not found");
     return;
   }
+
+  std::cout << "\x1b[34m" << response->result_int() << " " << response->reason()
+            << "\x1b[0m"
+            << " " << response->body().size << " outgoing bytes" << std::endl;
 
   do_file_read(self, buffer, response, content_type);
 }
