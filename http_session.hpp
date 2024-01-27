@@ -37,10 +37,8 @@ private:
     void on_write(beast::error_code ec, bool close);
     void handle_fallback();
 
-    static void do_file_read(std::shared_ptr<http_session> self,
-        std::shared_ptr<std::vector<char>> buffer,
-        std::shared_ptr<http::response<http::buffer_body>> response,
-        const std::string &content_type);
+    void do_file_read(std::shared_ptr<http_session> self,
+        std::shared_ptr<std::vector<char>> buffer);
 
     static std::map<std::string, std::function<void(http_session&, const http::request<http::dynamic_body>&)>> routeHandlers;
 };
