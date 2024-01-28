@@ -38,6 +38,11 @@ void http_session::send_response(const std::string& message, const std::string &
   auto self = shared_from_this();
   http::async_write(socket_, *res,
                     [self, res](beast::error_code ec, std::size_t) {
+                      if (ec) {
+                        std::cerr << "\x1b[31m" << "Error: " << ec.message() << "\x1b[0m" << std::endl;
+                        return;
+                      }
+
                       self->on_write(ec, res->need_eof());
                     });
 }
@@ -53,6 +58,10 @@ void http_session::send_bad_request(const std::string& message) {
   auto self = shared_from_this();
   http::async_write(socket_, *res,
                     [self, res](beast::error_code ec, std::size_t) {
+                      if (ec) {
+                        std::cerr << "\x1b[31m" << "Error: " << ec.message() << "\x1b[0m" << std::endl;
+                        return;
+                      }
                       self->on_write(ec, res->need_eof());
                     });
 }
@@ -95,6 +104,10 @@ void http_session::handle_fallback() {
 void http_session::on_write(beast::error_code ec, bool close) {
   if (ec) {
     std::cerr << "\x1b[31m" << "Error: " << ec.message() << "\x1b[0m" << std::endl;
+    if (ec == net::error::broken_pipe || ec == net::error::connection_reset) {
+      // Gracefully close the socket
+      socket_.close();
+    }
     return;
   }
 
@@ -112,13 +125,14 @@ void http_session::on_write(beast::error_code ec, bool close) {
 }
 
 void http_session::stream_file(const std::string& file_path, const std::string &content_type) {
-  auto self = shared_from_this();
-  auto buffer = std::make_shared<std::vector<char>>(4096);
+  int transfer_id = next_transfer_id++;
+  FileTransfer& transfer = file_transfers[transfer_id];
 
-  file_stream.open(file_path, std::ios::binary);
-  if (!file_stream.is_open()) {
+  transfer.file_stream.open(file_path, std::ios::binary);
+  if (!transfer.file_stream.is_open()) {
     std::cout << "File not found: " << file_path << std::endl;
     send_bad_request("File not found");
+    file_transfers.erase(transfer_id);
     return;
   }
 
@@ -130,43 +144,52 @@ void http_session::stream_file(const std::string& file_path, const std::string &
 
   // Serialize and send the header
   http::response_serializer<http::empty_body> sr{res};
-  http::write_header(self->socket_, sr);
+  http::write_header(socket_, sr);
 
-  do_file_read(self, buffer);
+  try {
+    // Send the first chunk
+    do_file_read(transfer_id);
+  } catch (std::exception& e) {
+    std::cerr << "Error happened during file streaming: " << e.what() << std::endl;
+    file_transfers.erase(transfer_id);
+    return;
+  }
 }
 
-void http_session::do_file_read(
-    std::shared_ptr<http_session> self,
-    std::shared_ptr<std::vector<char>> buffer){
-
-    if (!self->file_stream.good()) {
+void http_session::do_file_read(int transfer_id){
+    FileTransfer& transfer = file_transfers[transfer_id];
+    if (!transfer.file_stream.good()) {
         std::cerr << "Error: File stream is not good\n";
+        file_transfers.erase(transfer_id);
         return;
     }
 
-    self->file_stream.read(buffer->data(), buffer->size());
-    auto bytes_read = self->file_stream.gcount();
+    transfer.file_stream.read(transfer.buffer.data(), transfer.buffer.size());
+    auto bytes_read = transfer.file_stream.gcount();
 
     if (bytes_read <= 0) {
         // Send the last chunk
-        boost::asio::write(self->socket_, http::make_chunk_last());
-        self->file_stream.close();
+        boost::asio::write(socket_, http::make_chunk_last());
+        transfer.file_stream.close();
+        file_transfers.erase(transfer_id);
         return;
     }
 
     // Send a chunk
-    boost::asio::const_buffer chunk_body(buffer->data(), bytes_read);
-    boost::asio::write(self->socket_, http::make_chunk(chunk_body));
+    boost::asio::const_buffer chunk_body(transfer.buffer.data(), bytes_read);
+    boost::asio::write(socket_, http::make_chunk(chunk_body));
 
     // log outgoing response
     std::cout << "\x1b[34m" << "200 OK" << "\x1b[0m"
         << " " << bytes_read << " outgoing bytes" << std::endl;
 
-    if (!self->file_stream.eof()) {
-        self->do_file_read(self, buffer);
+    if (!transfer.file_stream.eof()) {
+        do_file_read(transfer_id);
     } else {
         // Send the last chunk
-        boost::asio::write(self->socket_, http::make_chunk_last());
-        self->file_stream.close();
+        std::cout << "Sending last chunk\n";
+        boost::asio::write(socket_, http::make_chunk_last());
+        transfer.file_stream.close();
+        file_transfers.erase(transfer_id);
     }
 }

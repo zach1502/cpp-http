@@ -9,7 +9,6 @@
 #include "http_server.hpp"
 namespace fs = std::filesystem;
 
-#define MAX_THREADS 4
 #define SERVER_PORT 8080
 
 std::unique_ptr<http_server> server;
@@ -104,6 +103,12 @@ int main() {
   try {
     std::signal(SIGINT, signal_handler);
     std::cout << "Starting server on port " << SERVER_PORT << std::endl;
+    std::cout << "Press Ctrl+C to stop" << std::endl;
+
+    std::cout << "max threads: " << MAX_THREADS << std::endl;
+    std::cout << "max listen connections: "
+              << net::socket_base::max_listen_connections << std::endl;
+    
 
     net::io_context ioc{1};
     server = std::make_unique<http_server>(
