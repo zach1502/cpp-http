@@ -108,26 +108,33 @@ int main() {
     std::cout << "max threads: " << MAX_THREADS << std::endl;
     std::cout << "max listen connections: "
               << net::socket_base::max_listen_connections << std::endl;
-    
 
-    net::io_context ioc{1};
-    server = std::make_unique<http_server>(
-        ioc, tcp::endpoint(tcp::v4(), SERVER_PORT));
+    const std::size_t num_contexts = std::thread::hardware_concurrency();
+    std::vector<net::io_context> io_contexts(num_contexts);
+    std::vector<net::executor_work_guard<net::io_context::executor_type>> work_guards;
 
-    // default route
-    http_session::addRoute("/", handle_root);
+    for (auto& ctx : io_contexts) {
+        work_guards.emplace_back(net::make_work_guard(ctx));
+    }
 
-    // add routes for static files, Can be overridden by the user
-    add_all_files_in_directory();
-
+    std::vector<std::reference_wrapper<net::io_context>> io_context_refs;
+    for (auto& ctx : io_contexts) {
+        io_context_refs.push_back(std::ref(ctx));
+    }
+    server = std::make_unique<http_server>(io_context_refs, tcp::endpoint(tcp::v4(), SERVER_PORT));
     server->run();
 
-    std::vector<std::thread> threads(MAX_THREADS);
-    for (auto& t : threads) {
-      t = std::thread([&ioc] { ioc.run(); });
+    // add routes
+    http_session::addRoute("/", handle_root);
+    add_all_files_in_directory();
+
+    std::vector<std::thread> threads;
+    for (auto& ctx : io_contexts) {
+        threads.emplace_back([&ctx] { ctx.run(); });
     }
+
     for (auto& t : threads) {
-      t.join();
+        t.join();
     }
   } catch (std::exception const& e) {
     std::cerr << "Error: " << e.what() << std::endl;

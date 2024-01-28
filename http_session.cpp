@@ -179,15 +179,9 @@ void http_session::do_file_read(int transfer_id){
     boost::asio::const_buffer chunk_body(transfer.buffer.data(), bytes_read);
     boost::asio::write(socket_, http::make_chunk(chunk_body));
 
-    // log outgoing response
-    std::cout << "\x1b[34m" << "200 OK" << "\x1b[0m"
-        << " " << bytes_read << " outgoing bytes" << std::endl;
-
     if (!transfer.file_stream.eof()) {
         do_file_read(transfer_id);
     } else {
-        // Send the last chunk
-        std::cout << "Sending last chunk\n";
         boost::asio::write(socket_, http::make_chunk_last());
         transfer.file_stream.close();
         file_transfers.erase(transfer_id);

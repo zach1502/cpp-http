@@ -40,7 +40,6 @@ private:
     tcp::socket socket_;
     beast::flat_buffer buffer_;
     http::request<http::dynamic_body> req_;
-    std::ifstream file_stream;
     std::unordered_map<int, FileTransfer> file_transfers;
     int next_transfer_id = 0;
 
