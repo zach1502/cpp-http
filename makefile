@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -g -std=c++17 -Wall -lboost_system -lboost_thread -lpthread -pipe -DBOOST_ALLOW_DEPRECATED_HEADERS
+CFLAGS = -g -std=c++17 -Wall -lboost_system -lboost_thread -lpthread -pipe -DBOOST_ALLOW_DEPRECATED_HEADERS -O3
 SOURCE = main.cpp http_server.cpp http_session.cpp globals.cpp
 
 
