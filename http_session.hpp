@@ -6,6 +6,7 @@
 #include <boost/beast/http.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/spawn.hpp>
 #include <functional>
 #include <memory>
 #include <string>
