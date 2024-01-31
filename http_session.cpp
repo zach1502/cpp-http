@@ -30,11 +30,9 @@ void http_session::send_response(const std::string& message,
   res->prepare_payload();
 
   // log outgoing response
-  // cout_mutex.lock();
   std::cout << "\x1b[34m" << res->result_int() << " " << res->reason()
             << "\x1b[0m"
             << " " << res->body().size() << " outgoing bytes" << std::endl;
-  // cout_mutex.unlock();
 
   auto self = shared_from_this();
   http::async_write(

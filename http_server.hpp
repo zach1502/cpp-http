@@ -17,6 +17,7 @@ class http_server {
 
  private:
   std::vector<std::reference_wrapper<net::io_context>>& io_contexts_;
+  std::vector<std::atomic<int>> io_context_loads_;
   tcp::acceptor acceptor_;
   size_t next_io_context_;
 

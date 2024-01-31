@@ -6,11 +6,12 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <mutex>
+#include <unordered_map>
 #include "http_session.hpp"
 #include "http_server.hpp"
 
 #define isDevMode 1
-#define MAX_THREADS 4
+#define MAX_THREADS std::thread::hardware_concurrency()
 #define SERVER_PORT 8080
 #define BOOST_BEAST_VERSION_STRING "my_server/1.0"
 
@@ -23,11 +24,5 @@ using RequestHandler = std::function<void(
     http_session&, const http::request<http::dynamic_body>&)>;
 using RouteHandlers = std::map<std::string, RequestHandler>;
 
-
 void handle_root(http_session& session, const http::request<http::dynamic_body>& req);
-void handle_about(http_session& session, const http::request<http::dynamic_body>& req);
-void handle_favorite_icon(http_session& session, const http::request<http::dynamic_body>& req);
-
-extern std::mutex cout_mutex;
-
 #endif  // GLOBALS_HPP

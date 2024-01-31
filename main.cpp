@@ -15,43 +15,31 @@ std::unique_ptr<http_server> server;
 
 void signal_handler(int signal) {
   if (signal == SIGINT) {
-    cout_mutex.lock();
     std::cout << "Received SIGINT, shutting down" << std::endl;
-    cout_mutex.unlock();
     server->stop();
   }
 }
 
-std::string determine_content_type(const std::string& extension) {
-  if (extension == ".html")
-    return "text/html";
-  else if (extension == ".js")
-    return "text/javascript";
-  else if (extension == ".css")
-    return "text/css";
-  else if (extension == ".jpg" || extension == ".jpeg")
-    return "image/jpeg";
-  else if (extension == ".png")
-    return "image/png";
-  else if (extension == ".ico")
-    return "image/x-icon";
-  else if (extension == ".svg")
-    return "image/svg+xml";
-  else if (extension == ".json")
-    return "application/json";
-  else if (extension == ".pdf")
-    return "application/pdf";
-  else if (extension == ".zip")
-    return "application/zip";
-  else if (extension == ".gz")
-    return "application/gzip";
-  else if (extension == ".mp3")
-    return "audio/mpeg";
-  else if (extension == ".mp4")
-    return "video/mp4";
+std::unordered_map<std::string, std::string> extension_to_mime = {
+    {".html", "text/html"},
+    {".css", "text/css"},
+    {".js", "text/javascript"},
+    {".json", "application/json"},
+    {".png", "image/png"},
+    {".jpg", "image/jpeg"},
+    {".jpeg", "image/jpeg"},
+    {".gif", "image/gif"},
+    {".svg", "image/svg+xml"},
+    {".ico", "image/x-icon"}
+};
 
-  else
-    return "UNSUPPORTED";
+std::string determine_content_type(const std::string& extension) {
+  auto it = extension_to_mime.find(extension);
+  if (it != extension_to_mime.end()) {
+    return it->second;
+  }
+
+  return "UNSUPPORTED";
 }
 
 void add_all_files_in_directory() {
@@ -109,7 +97,7 @@ int main() {
     std::cout << "max listen connections: "
               << net::socket_base::max_listen_connections << std::endl;
 
-    const std::size_t num_contexts = std::thread::hardware_concurrency();
+    const std::size_t num_contexts = MAX_THREADS;
     std::vector<net::io_context> io_contexts(num_contexts);
     std::vector<net::executor_work_guard<net::io_context::executor_type>> work_guards;
 

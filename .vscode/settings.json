@@ -57,6 +57,12 @@
         "codecvt": "cpp",
         "iomanip": "cpp",
         "condition_variable": "cpp",
-        "mutex": "cpp"
+        "mutex": "cpp",
+        "bitset": "cpp",
+        "charconv": "cpp",
+        "cstring": "cpp",
+        "regex": "cpp",
+        "span": "cpp",
+        "variant": "cpp"
     }
 }
