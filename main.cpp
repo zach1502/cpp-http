@@ -7,6 +7,7 @@
 
 #include "globals.hpp"
 #include "http_server.hpp"
+#include "router.hpp"
 namespace fs = std::filesystem;
 
 #define SERVER_PORT 8080
@@ -43,6 +44,7 @@ std::string determine_content_type(const std::string& extension) {
 }
 
 void add_all_files_in_directory() {
+  auto& router = Router::getInstance();
   const std::string directory_path = "./";
   for (const auto& entry : fs::recursive_directory_iterator(directory_path)) {
     if (fs::is_regular_file(entry.status())) {
@@ -72,7 +74,7 @@ void add_all_files_in_directory() {
                 << " with content type " << content_type << std::endl;
 
       // Add the route
-      http_session::addRoute(route,
+      router.addRoute(route,
                              [file_path, content_type](
                                  http_session& session,
                                  const http::request<http::dynamic_body>& req) {
@@ -113,7 +115,8 @@ int main() {
     server->run();
 
     // add routes
-    http_session::addRoute("/", handle_root);
+    auto& router = Router::getInstance();
+    router.addRoute("/", handle_root);
     add_all_files_in_directory();
 
     std::vector<std::thread> threads;

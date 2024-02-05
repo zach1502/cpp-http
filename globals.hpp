@@ -25,4 +25,5 @@ using RequestHandler = std::function<void(
 using RouteHandlers = std::map<std::string, RequestHandler>;
 
 void handle_root(http_session& session, const http::request<http::dynamic_body>& req);
+
 #endif  // GLOBALS_HPP

@@ -6,19 +6,9 @@
 
 #include "globals.hpp"
 
-std::map<std::string,
-         std::function<void(http_session&,
-                            const http::request<http::dynamic_body>&)>>
-    http_session::routeHandlers;
-
-std::ifstream file_stream;
-http_session::http_session(tcp::socket socket) : socket_(std::move(socket)) {}
+http_session::http_session(tcp::socket socket): socket_(std::move(socket)) {}
 
 void http_session::start() { do_read(); }
-
-void http_session::addRoute(const std::string& route, RequestHandler handler) {
-  routeHandlers[route] = handler;
-}
 
 void http_session::send_response(const std::string& message,
                                  const std::string& content_type) {
@@ -90,12 +80,9 @@ void http_session::on_read(beast::error_code ec,
             << "\x1b[0m"
             << " " << bytes_transferred << " incoming bytes" << std::endl;
 
-  auto it = routeHandlers.find(req_.target().to_string());
-  if (it != routeHandlers.end()) {
-    it->second(*this, req_);
-  } else {
-    // Handle unknown route
-    handle_fallback();
+  if (!Router::getInstance().routeRequest(*this, req_)) {
+      // If route not found
+      handle_fallback();
   }
 }
 

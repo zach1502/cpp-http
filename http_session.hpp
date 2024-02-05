@@ -14,6 +14,9 @@
 #include <fstream>
 #include <vector>
 
+class http_session;
+#include "router.hpp"
+
 namespace beast = boost::beast;  // from <boost/beast.hpp>
 namespace http = beast::http;    // from <boost/beast/http.hpp>
 namespace net = boost::asio;     // from <boost/asio.hpp>
@@ -32,7 +35,6 @@ public:
     explicit http_session(tcp::socket socket);
     void start();
 
-    static void addRoute(const std::string& route, std::function<void(http_session&, const http::request<http::dynamic_body>&)> handler);
     void send_response(const std::string& message, const std::string &content_type);
     void send_bad_request(const std::string& message);
     void stream_file(const std::string& file_path, const std::string &content_type);
@@ -50,8 +52,6 @@ private:
     void handle_fallback();
 
     void do_file_read(int transfer_id);
-
-    static std::map<std::string, std::function<void(http_session&, const http::request<http::dynamic_body>&)>> routeHandlers;
 };
 
 #endif  // HTTP_SESSION_HPP
