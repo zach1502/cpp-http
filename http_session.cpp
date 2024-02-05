@@ -26,6 +26,7 @@ void http_session::send_response(const std::string& message,
       http::status::ok, req_.version());
   res->set(http::field::server, BOOST_BEAST_VERSION_STRING);
   res->set(http::field::content_type, content_type);
+  res->set(http::field::cache_control, "public, max-age=2592000");
   res->body() = message;
   res->prepare_payload();
 
@@ -52,6 +53,7 @@ void http_session::send_bad_request(const std::string& message) {
       http::status::bad_request, req_.version());
   res->set(http::field::server, BOOST_BEAST_VERSION_STRING);
   res->set(http::field::content_type, "text/plain");
+  res->set(http::field::cache_control, "public, max-age=2592000");
   res->body() = message;
   res->prepare_payload();
 
@@ -147,6 +149,7 @@ void http_session::stream_file(const std::string& file_path,
       http::status::ok, req_.version());
   response->set(http::field::server, BOOST_BEAST_VERSION_STRING);
   response->set(http::field::content_type, content_type);
+  response->set(http::field::cache_control, "public, max-age=2592000");
   response->keep_alive(req_.keep_alive());
   response->chunked(true);
 

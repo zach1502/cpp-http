@@ -8,5 +8,8 @@ all: webserver
 webserver: main.cpp http_server.cpp http_session.cpp globals.cpp http_server.hpp http_session.hpp globals.hpp
 	$(CC) $(CFLAGS) -o webserver $(SOURCE)
 
+profile: main.cpp http_server.cpp http_session.cpp globals.cpp http_server.hpp http_session.hpp globals.hpp
+	$(CC) $(CFLAGS) -pg -o webserver $(SOURCE)
+
 clean:
 	rm -f webserver
