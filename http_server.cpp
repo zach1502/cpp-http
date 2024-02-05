@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include "globals.hpp"
 #include "http_session.hpp"
 
 #define isDevMode 1
@@ -49,7 +50,7 @@ void http_server::stop() {
   acceptor_.close(ec);
   if (ec) {
     // Log the error
-    std::cerr << "Failed to close acceptor: " << ec.message() << std::endl;
+    getGlobalLogger().log("Failed to close acceptor: " + ec.message());
   }
 
   // Stop the io_context
@@ -60,12 +61,14 @@ void http_server::stop() {
 
 void http_server::do_accept() {
   // load balancing here
-    acceptor_.async_accept(net::make_strand(io_contexts_[next_io_context_].get()), [this](beast::error_code ec, tcp::socket socket) {
+  acceptor_.async_accept(
+      net::make_strand(io_contexts_[next_io_context_].get()),
+      [this](beast::error_code ec, tcp::socket socket) {
         if (!ec) {
-            std::make_shared<http_session>(std::move(socket))->start();
+          std::make_shared<http_session>(std::move(socket))->start();
         }
         do_accept();
-    });
+      });
 
-    next_io_context_ = (next_io_context_ + 1) % io_contexts_.size();
+  next_io_context_ = (next_io_context_ + 1) % io_contexts_.size();
 }

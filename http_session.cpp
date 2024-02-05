@@ -20,17 +20,16 @@ void http_session::send_response(const std::string& message,
   res->body() = message;
   res->prepare_payload();
 
-  // log outgoing response
-  std::cout << "\x1b[34m" << res->result_int() << " " << res->reason()
-            << "\x1b[0m"
-            << " " << res->body().size() << " outgoing bytes" << std::endl;
+  getGlobalLogger().log(std::to_string(res->result_int()) + " " +
+                                   res->reason().to_string() + " " +
+                                   std::to_string(res->body().size()) +
+                                   " outgoing bytes");
 
   auto self = shared_from_this();
   http::async_write(
       socket_, *res, [self, res](beast::error_code ec, std::size_t) {
-        if (ec) {
-          std::cerr << "\x1b[31m"
-                    << "Error: " << ec.message() << "\x1b[0m" << std::endl;
+        if (ec) {;
+          getGlobalLogger().log("\x1b[31m" + std::string("Error: " + ec.message()) + "\x1b[0m");
           return;
         }
 
@@ -51,8 +50,7 @@ void http_session::send_bad_request(const std::string& message) {
   http::async_write(
       socket_, *res, [self, res](beast::error_code ec, std::size_t) {
         if (ec) {
-          std::cerr << "\x1b[31m"
-                    << "Error: " << ec.message() << "\x1b[0m" << std::endl;
+          getGlobalLogger().log("\x1b[31m" + std::string("Error: " + ec.message()) + "\x1b[0m");
           return;
         }
         self->on_write(ec, res->need_eof());
@@ -70,15 +68,16 @@ void http_session::do_read() {
 void http_session::on_read(beast::error_code ec,
                            std::size_t bytes_transferred) {
   if (ec) {
-    std::cerr << "\x1b[31m"
-              << "Error: " << ec.message() << "\x1b[0m" << std::endl;
+    getGlobalLogger().log("\x1b[31m" + std::string("Error: " + ec.message()) + "\x1b[0m");
     return;
   }
 
   // Log the request type ( with color), path, and bytes transfered
-  std::cout << "\x1b[32m" << req_.method_string() << " " << req_.target()
-            << "\x1b[0m"
-            << " " << bytes_transferred << " incoming bytes" << std::endl;
+
+  getGlobalLogger().log("\x1b[32m" + std::string(req_.method_string()) + " " +
+                                   req_.target().to_string() + "\x1b[0m" + " " +
+                                   std::to_string(bytes_transferred) +
+                                   " incoming bytes");
 
   if (!Router::getInstance().routeRequest(*this, req_)) {
       // If route not found
@@ -96,8 +95,7 @@ void http_session::handle_fallback() {
 
 void http_session::on_write(beast::error_code ec, bool close) {
   if (ec) {
-    std::cerr << "\x1b[31m"
-              << "Error: " << ec.message() << "\x1b[0m" << std::endl;
+    getGlobalLogger().log("\x1b[31m" + std::string("Error: " + ec.message()) + "\x1b[0m");
     if (ec == net::error::broken_pipe || ec == net::error::connection_reset) {
       // Gracefully close the socket
       socket_.close();
@@ -125,7 +123,7 @@ void http_session::stream_file(const std::string& file_path,
 
   transfer.file_stream.open(file_path, std::ios::binary);
   if (!transfer.file_stream.is_open()) {
-    std::cout << "File not found: " << file_path << std::endl;
+    getGlobalLogger().log("File not found: " + file_path);
     send_bad_request("File not found");
     file_transfers.erase(transfer_id);
     return;
@@ -150,7 +148,7 @@ void http_session::stream_file(const std::string& file_path,
         if (!ec) {
           self->do_file_read(transfer_id);
         } else {
-          std::cerr << "Error writing header: " << ec.message() << std::endl;
+          getGlobalLogger().log("Error writing header: " + ec.message());
           self->file_transfers.erase(transfer_id);
         }
       });
@@ -160,7 +158,7 @@ void http_session::do_file_read(int transfer_id) {
   auto self = shared_from_this();
   FileTransfer& transfer = file_transfers[transfer_id];
   if (!transfer.file_stream.good()) {
-    std::cerr << "Error: File stream is not good\n";
+    getGlobalLogger().log("Error: File stream is not good");
     file_transfers.erase(transfer_id);
     return;
   }
@@ -174,8 +172,7 @@ void http_session::do_file_read(int transfer_id) {
         socket_, http::make_chunk_last(),
         [self, transfer_id](beast::error_code ec, std::size_t) {
           if (ec) {
-            std::cerr << "Error sending last chunk: " << ec.message()
-                      << std::endl;
+            getGlobalLogger().log("\x1b[31m" + std::string("Error sending last chunk: " + ec.message()) + "\x1b[0m");
           }
           self->file_transfers.erase(transfer_id);
         });
@@ -196,14 +193,13 @@ void http_session::do_file_read(int transfer_id) {
                 self->socket_, http::make_chunk_last(),
                 [self, transfer_id](beast::error_code ec, std::size_t) {
                   if (ec) {
-                    std::cerr << "Error sending last chunk: " << ec.message()
-                              << std::endl;
+                    getGlobalLogger().log("\x1b[31m" + std::string("Error sending last chunk: " + ec.message()) + "\x1b[0m");
                   }
                   self->file_transfers.erase(transfer_id);
                 });
           }
         } else {
-          std::cerr << "Error sending chunk: " << ec.message() << std::endl;
+          getGlobalLogger().log("\x1b[31m" + std::string("Error sending chunk: " + ec.message()) + "\x1b[0m");
           self->file_transfers.erase(transfer_id);
         }
       });

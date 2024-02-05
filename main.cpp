@@ -6,9 +6,10 @@
 #include <thread>
 
 #include "globals.hpp"
-#include "logger.hpp"
 #include "http_server.hpp"
 #include "router.hpp"
+#include "logger.hpp"
+
 namespace fs = std::filesystem;
 
 #define SERVER_PORT 8080
@@ -16,10 +17,28 @@ namespace fs = std::filesystem;
 std::unique_ptr<http_server> server;
 
 void signal_handler(int signal) {
-  if (signal == SIGINT) {
-    std::cout << "Received SIGINT, shutting down" << std::endl;
-    server->stop();
+
+  switch (signal) {
+    case SIGINT:
+      getGlobalLogger().log("Received SIGINT, shutting down");
+      server->stop();
+      break;
+
+    case SIGTERM:
+      getGlobalLogger().log("Received SIGTERM, shutting down");
+      server->stop();
+      break;
+
+    case SIGKILL:
+      getGlobalLogger().log("Received SIGKILL, shutting down");
+      server->stop();
+      break;
+
+    default:
+      getGlobalLogger().log("Received unknown signal " + std::to_string(signal));
+      break;
   }
+
 }
 
 std::unordered_map<std::string, std::string> extension_to_mime = {
@@ -63,16 +82,15 @@ void add_all_files_in_directory() {
           determine_content_type(entry.path().extension().string());
 
       if (content_type == "UNSUPPORTED") {
-        std::cout << "Skipping file " << file_path
-                  << " with unsupported MIME type" << std::endl;
+        getGlobalLogger().log("Skipping file " + file_path + " with unsupported MIME type");
         continue;
       }
 
       // this slash is needed for the route to work
       route = "/" + route;
 
-      std::cout << "Adding route " << route << " for file " << file_path
-                << " with content type " << content_type << std::endl;
+      getGlobalLogger().log("Adding route " + route + " for file " + file_path +
+                            " with content type " + content_type);
 
       // Add the route
       router.addRoute(route,
@@ -93,13 +111,11 @@ void handle_root(http_session& session,
 int main() {
   try {
     std::signal(SIGINT, signal_handler);
-    Logger::getInstance().log("Application started");
-    std::cout << "Starting server on port " << SERVER_PORT << std::endl;
-    std::cout << "Press Ctrl+C to stop" << std::endl;
+    getGlobalLogger().log("Starting server on port " + std::to_string(SERVER_PORT));
+    getGlobalLogger().log("Press Ctrl+C to stop");
 
-    std::cout << "max threads: " << MAX_THREADS << std::endl;
-    std::cout << "max listen connections: "
-              << net::socket_base::max_listen_connections << std::endl;
+    getGlobalLogger().log("Using " + std::to_string(MAX_THREADS) + " threads");
+    getGlobalLogger().log("Max Listen Connections: " + std::to_string(net::socket_base::max_listen_connections));
 
     const std::size_t num_contexts = MAX_THREADS;
     std::vector<net::io_context> io_contexts(num_contexts);
@@ -130,7 +146,7 @@ int main() {
         t.join();
     }
   } catch (std::exception const& e) {
-    std::cerr << "Error: " << e.what() << std::endl;
+    getGlobalLogger().log("Error: " + std::string(e.what()));
     return EXIT_FAILURE;
   }
 

@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include "http_session.hpp"
 #include "http_server.hpp"
+#include "logger.hpp"
 
 #define isDevMode 1
 #define MAX_THREADS std::thread::hardware_concurrency()
@@ -25,5 +26,7 @@ using RequestHandler = std::function<void(
 using RouteHandlers = std::map<std::string, RequestHandler>;
 
 void handle_root(http_session& session, const http::request<http::dynamic_body>& req);
+
+Logger& getGlobalLogger();
 
 #endif  // GLOBALS_HPP
