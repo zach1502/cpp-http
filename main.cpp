@@ -6,6 +6,7 @@
 #include <thread>
 
 #include "globals.hpp"
+#include "logger.hpp"
 #include "http_server.hpp"
 #include "router.hpp"
 namespace fs = std::filesystem;
@@ -92,6 +93,7 @@ void handle_root(http_session& session,
 int main() {
   try {
     std::signal(SIGINT, signal_handler);
+    Logger::getInstance().log("Application started");
     std::cout << "Starting server on port " << SERVER_PORT << std::endl;
     std::cout << "Press Ctrl+C to stop" << std::endl;
 
